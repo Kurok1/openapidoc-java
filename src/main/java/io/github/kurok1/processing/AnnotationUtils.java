@@ -2,6 +2,7 @@ package io.github.kurok1.processing;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,27 @@ public class AnnotationUtils {
                     return name;
         }
         return "";
+    }
+    
+    /**
+     * 过滤当前元素，存在哪些给定的注解
+     * @param element 元素，可以是参数或方法
+     * @param annotationName 注解列表
+     * @return 被哪些注解标记
+     */
+    public static List<String> filterAnnotationPresent(Element element, String... annotationName) {
+        if (annotationName.length == 0)
+            return Collections.emptyList();
+        List<String> result = new ArrayList<>();
+        
+        List<? extends AnnotationMirror> annotationMirrors = element.getAnnotationMirrors();
+        for (AnnotationMirror mirror : annotationMirrors) {
+            for (String name : annotationName)
+                if (mirror.getAnnotationType().toString().equals(name))
+                    result.add(name);
+        }
+        
+        return result;
     }
 
     public static boolean isAnnotationPresent(Element element, String annotationName) {
@@ -83,6 +105,49 @@ public class AnnotationUtils {
         }
 
         return "";
+    }
+    
+    public static List<String> readAnnotationValues(Element element, String annotationName, String property, String... aliasProperties) {
+        AnnotationMirror mirror = element.getAnnotationMirrors() // 返回当前元素的所有注解集合
+                .stream()
+                .filter(annotation -> Objects.equals(annotationName, annotation.getAnnotationType().toString()))
+                .findFirst()
+                .orElse(null);
+        
+        if (mirror == null)
+            return Collections.emptyList();
+        
+        List<String> result = new ArrayList<>();
+        Map<? extends ExecutableElement, ? extends AnnotationValue> elementValues = mirror.getElementValues();
+        for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : elementValues.entrySet()) {
+            String name = entry.getKey().getSimpleName().toString();
+            if (name.equals(property)) {
+                String value = entry.getValue().getValue().toString().replace("\"", "");
+                if (value.isEmpty()) {
+                    AnnotationValue defaultValue = entry.getKey().getDefaultValue();
+                    if (defaultValue != null)
+                        value = entry.getKey().getDefaultValue().getValue().toString().replace("\"", "");
+                }
+                if (!value.isEmpty())
+                    result.add(value);
+            }
+            
+            
+            //别名支持，针对@AliasFor
+            for (String alias : aliasProperties)
+                if (name.equals(alias)) {
+                    String value = entry.getValue().getValue().toString().replace("\"", "");
+                    if (value.isEmpty()) {
+                        AnnotationValue defaultValue = entry.getKey().getDefaultValue();
+                        if (defaultValue == null)
+                            continue;
+                        value = entry.getKey().getDefaultValue().getValue().toString().replace("\"", "");
+                    }
+                    result.add(value);
+                }
+        }
+        
+        return result;
     }
 
 

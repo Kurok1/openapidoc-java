@@ -1,6 +1,7 @@
 package io.github.kurok1.processing;
 
 import io.github.kurok1.processing.compiler.CustomCompiler;
+import io.github.kurok1.processing.impl.spring.SpringMVCOpenApiProcessor;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,9 +15,9 @@ public class RequestProcessorTest {
         File targetDirectory = getClassOutputDirectory();
         // 基于 Compiler
         CustomCompiler compiler = new CustomCompiler(sourceDirectory, targetDirectory);
-        compiler.setProcessors(new RequestProcessor());
+        compiler.setProcessors(new SpringMVCOpenApiProcessor());
         compiler.compile(
-                AnoController.class.getName(), MyController.class.getName(), SimpleController.class.getName()
+                SimpleController.class.getName()
         );
     }
 
